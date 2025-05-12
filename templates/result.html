@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Test Result - Stream Suggestion</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 750px;
+      margin: 50px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    h1 {
+      color: #1e3a5f;
+    }
+    button {
+      padding: 10px 15px;
+      background: #1e3a5f;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #3a5f8c;
+    }
+    .back-btn {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      background: transparent;
+      color: #1e3a5f;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .summary {
+      margin-top: 30px;
+      padding: 15px;
+      border-top: 1px solid #ccc;
+    }
+    .question-block {
+      margin-bottom: 20px;
+    }
+    .option {
+      margin-left: 20px;
+    }
+    .correct {
+      color: green;
+      font-weight: bold;
+    }
+    .wrong {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+    <a href="test.html" style="position: absolute; top: 20px; left: 20px; text-decoration: none; color: #2e3d4f; font-size: 1em; font-weight: bold; background-color: #e0e0e0; padding: 8px 14px; border-radius: 6px;">
+    ← Back
+  </a>
+<div class="container">
+
+
+  <canvas id="scoreChart" width="400" height="200" style="margin-top: 30px;"></canvas>
+
+  <button onclick="retakeTest()">Retake Test</button>
+  <button onclick="showSummary()">Show Answer Summary</button>
+
+  <div id="summary" class="summary" style="display: none;"></div>
+
+  <a href="new_result.html">
+    <button>See College Suggestions</button>
+  </a>
+</div>
+
+<script>
+  const streamScores = JSON.parse(localStorage.getItem("streamScores"));
+  const submissions = JSON.parse(localStorage.getItem("submissions"));
+  const questions = JSON.parse(localStorage.getItem("questions"));
+
+  const streamNames = {
+    math: "Mathematics",
+    physics: "Physics",
+    chemistry: "Chemistry",
+    biology: "Biology",
+    law: "Law",
+    management: "Management",
+    agriculture: "Agriculture"
+  };
+
+  function renderChart(scores) {
+    const ctx = document.getElementById('scoreChart').getContext('2d');
+    const validKeys = Object.keys(scores).filter(key => streamNames[key]);
+
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: validKeys.map(key => streamNames[key]),
+        datasets: [{
+          label: 'Scores',
+          data: validKeys.map(key => scores[key]),
+          backgroundColor: [
+            '#1e3a5f', '#007bff', '#28a745', '#ffc107', '#ff5733', '#9c27b0', '#4caf50'
+          ],
+          borderRadius: 8
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { precision: 0 }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: true }
+        }
+      }
+    });
+  }
+
+  function showSummary() {
+    const summaryDiv = document.getElementById("summary");
+    summaryDiv.innerHTML = "<h3>Answer Summary:</h3>";
+
+    questions.forEach((q, index) => {
+      const userAnswer = submissions[index];
+      const isCorrect = userAnswer === q.answer;
+
+      const block = document.createElement("div");
+      block.className = "question-block";
+
+      block.innerHTML = `
+        <strong>Q${index + 1}:</strong> ${q.question}<br/>
+        <span class="option ${isCorrect ? 'correct' : 'wrong'}">
+          Your Answer: ${userAnswer || "Not Answered"}
+        </span><br/>
+        <span class="option correct">Correct Answer: ${q.answer}</span>
+      `;
+
+      summaryDiv.appendChild(block);
+    });
+
+    summaryDiv.style.display = "block";
+  }
+
+  function retakeTest() {
+    localStorage.removeItem("submissions");
+    localStorage.removeItem("questions");
+    localStorage.removeItem("streamScores");
+    window.location.href = "test.html";
+  }
+
+  if (streamScores) {
+    renderChart(streamScores);
+  }
+</script>
+
+</body>
+</html>

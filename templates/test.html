@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Class 12 Stream Selection Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 700px;
+      margin: 50px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      position: relative;
+    }
+    h2 {
+      color: #1e3a5f;
+    }
+
+    #categoryText {
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    #timer {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      font-weight: bold;
+      color: #d9534f;
+      font-size: 16px;
+    }
+
+    .options label {
+      display: block;
+      margin: 15px 0;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .options input[type="radio"] {
+      appearance: none;
+      height: 16px;
+      width: 16px;
+      border: 2px solid #1e3a5f;
+      border-radius: 50%;
+      margin-right: 10px;
+      position: relative;
+      top: 4px;
+      cursor: pointer;
+    }
+
+    .options input[type="radio"]:checked::before {
+      content: '';
+      display: block;
+      height: 8px;
+      width: 8px;
+      border-radius: 50%;
+      background-color: #1e3a5f;
+      position: absolute;
+      top: 4px;
+      left: 4px;
+    }
+
+    .options input[type="radio"]:checked + span {
+  background-color: #d1e9ff;
+  border-color: #1e3a5f;
+}
+
+    .options label.selected {
+  background-color: #d1e9ff;
+  border-color: #1e3a5f;
+}
+
+
+
+    .options label:hover {
+      background-color: #e8f0fe;
+    }
+
+    button {
+      background-color: #1e3a5f;
+      color: white;
+      padding: 10px 16px;
+      margin: 20px 5px 0 0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #3a5f8c;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 5-minute warning modal */
+    #popupModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #popupModalContent {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 400px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div id="timer">⏱️ 120:00</div>
+  <h2 id="questionText"></h2>
+  <p id="categoryText"></p>
+
+  <form id="testForm">
+    <div class="options" id="optionsContainer"></div>
+    <div>
+      <button type="button" id="prevBtn">Previous</button>
+      <button type="button" id="nextBtn">Next</button>
+      <button type="submit" id="submitBtn" style="display: none;">Submit</button>
+    </div>
+  </form>
+
+  <div id="loadingSpinner" style="display: none; text-align: center;">
+    <p>Generating your result...</p>
+    <div class="spinner"></div>
+  </div>
+</div>
+
+<!-- 5-minute warning popup -->
+<div id="popupModal">
+  <div id="popupModalContent">
+    <h3>⚠️ Only 5 Minutes Left!</h3>
+    <p>Please review your answers and prepare to submit the test.</p>
+    <button onclick="closeModal()">OK</button>
+  </div>
+</div>
+
+<script>
+    const questions = [
+    {
+      question: "If α and β are the roots of x² - 5x + 6 = 0, then α² + β² is:",
+      options: ["31", "25", "13", "11"],
+      answer: "13",
+      category: "math"
+    },
+    {
+      question: "Sum of the series 1 + 3 + 5 + … + (2n - 1) is:",
+      options: ["n²", "2n", "n(n+1)", "2n+1"],
+      answer: "n²",
+      category: "math"
+    },
+    {
+      question: "If sin θ + cos θ = 1/√2, then sin 2θ is:",
+      options: ["0", "1", "1/2", "-1"],
+      answer: "0",
+      category: "math"
+    },
+    {
+      question: "Derivative of e^{x²} with respect to x is:",
+      options: ["2x e^{x²}", "e^{2x}", "2e^{x²}", "x e^{2x}"],
+      answer: "2x e^{x²}",
+      category: "math"
+    },
+    {
+      question: "Number of real solutions of |x - 1| + |x + 2| = 5 is:",
+      options: ["1", "2", "3", "Infinite"],
+      answer: "2",
+      category: "math"
+    },
+    /*{
+      question: "If point (2,3) lies on the line y = mx + 1, then m is:",
+      options: ["1", "2", "3", "1"],
+      answer: "1",
+      category: "math"
+    },
+    {
+      question: "Area between y = x² and y = x + 6 is:",
+      options: ["9", "12", "18", "27"],
+      answer: "18",
+      category: "math"
+    },
+    {
+      question: "Center of the circle x² + y² - 4x + 6y - 12 = 0 is:",
+      options: ["(2, -3)", "(-2, 3)", "(2, 3)", "(-2, -3)"],
+      answer: "(2, -3)",
+      category: "math"
+    },
+    {
+      question: "If P(A) = 0.5, P(B) = 0.4, P(A ∩ B) = 0.2, then P(A ∪ B) is:",
+      options: ["0.7", "0.9", "1.1", "0.6"],
+      answer: "0.7",
+      category: "math"
+    },
+    {
+      question: "∫ 2x cos(x²) dx is:",
+      options: ["sin(x²) + C", "cos(x²) + C", "sin(2x) + C", "cos(2x) + C"],
+      answer: "sin(x²) + C",
+      category: "math"
+    },
+    {
+      question: "Roots of 2x² + 3x + 1 = 0 are:",
+      options: ["Real and distinct", "Real and equal", "Complex conjugates", "Not real"],
+      answer: "Real and distinct",
+      category: "math"
+    },
+    {
+      question: "Angle between a = 3i - 4j and b = 4i + 3j is:",
+      options: ["90°", "45°", "60°", "30°"],
+      answer: "90°",
+      category: "math"
+    },
+    {
+      question: "tan⁻¹(1) + tan⁻¹(2) + tan⁻¹(3) is:",
+      options: ["π", "π/2", "π/4", "0"],
+      answer: "π",
+      category: "math"
+    },
+    {
+      question: "Eccentricity of (x²/9) - (y²/4) = 1 is:",
+      options: ["√13/3", "√5/2", "√5/3", "√13/2"],
+      answer: "√13/3",
+      category: "math"
+    },
+    {
+      question: "General solution of cos 2x = 1 is:",
+      options: ["x = nπ", "x = nπ/2", "x = nπ + π/2", "x = 2nπ"],
+      answer: "x = nπ",
+      category: "math"
+    },
+    {
+      question: "Ratio of distances covered in 1st and 2nd second in free fall:",
+      options: ["1:3", "1:5", "1:7", "1:1"],
+      answer: "1:3",
+      category: "physics"
+    },
+    {
+      question: "Dimensional formula of force:",
+      options: ["MLT⁻²", "ML²T⁻²", "MLT⁻¹", "M⁻¹LT⁻²"],
+      answer: "MLT⁻²",
+      category: "physics"
+    },
+    {
+      question: "Velocity maximum in SHM at:",
+      options: ["Mean position", "Extreme position", "Midway", "Never"],
+      answer: "Mean position",
+      category: "physics"
+    },
+    {
+      question: "Ratio of resistances of wires with radius ratio 2:1:",
+      options: ["1:4", "4:1", "2:1", "1:2"],
+      answer: "1:4",
+      category: "physics"
+    },
+    {
+      question: "Work done moving charge q through potential V:",
+      options: ["qV", "q/V", "V/q", "qV²"],
+      answer: "qV",
+      category: "physics"
+    },
+    {
+      question: "Maximum height of projectile at 30° and 40 m/s:",
+      options: ["10 m", "20 m", "40 m", "20√3 m"],
+      answer: "20 m",
+      category: "physics"
+    },
+    {
+      question: "Escape velocity from Earth:",
+      options: ["7 km/s", "11.2 km/s", "5 km/s", "8.9 km/s"],
+      answer: "11.2 km/s",
+      category: "physics"
+    },
+    {
+      question: "Law relating current and voltage:",
+      options: ["Faraday’s", "Ohm’s", "Ampere’s", "Lenz’s"],
+      answer: "Ohm’s",
+      category: "physics"
+    },
+    {
+      question: "Energy of photon:",
+      options: ["hc/λ", "hλ/c", "λ/hc", "hcλ"],
+      answer: "hc/λ",
+      category: "physics"
+    },
+    {
+      question: "Efficiency of Carnot engine:",
+      options: ["1 - T₁/T₂", "1 - T₂/T₁", "T₂/T₁", "T₁/T₂"],
+      answer: "1 - T₁/T₂",
+      category: "physics"
+    },*/
+    {
+      question: "Effect on energy if amplitude doubled:",
+      options: ["2 times", "4 times", "1/2 times", "Same"],
+      answer: "4 times",
+      category: "physics"
+    },
+    {
+      question: "Highest penetration power:",
+      options: ["Alpha", "Beta", "Gamma", "Cathode rays"],
+      answer: "Gamma",
+      category: "physics"
+    },
+    {
+      question: "Magnetic field inside long solenoid:",
+      options: ["Zero", "Uniform", "Decreases", "Increases"],
+      answer: "Uniform",
+      category: "physics"
+    },
+    {
+      question: "Series combination of capacitors:",
+      options: ["C = C₁ + C₂", "1/C = 1/C₁ + 1/C₂", "C = C₁C₂ / (C₁ + C₂)", "Both (B) and (C)"],
+      answer: "1/C = 1/C₁ + 1/C₂",
+      category: "physics"
+    },
+    {
+      question: "Time period of pendulum if gravity 4 times Earth:",
+      options: ["T/2", "2T", "T/4", "4T"],
+      answer: "T/2",
+      category: "physics"
+    },
+    /*{
+      question: "Moles in 22.4 L ideal gas at STP:",
+      options: ["1", "2", "0.5", "1.5"],
+      answer: "1",
+      category: "chemistry"
+    },
+    {
+      question: "Maximum number of atoms:",
+      options: ["18 g H₂O", "22 g CO₂", "20 g CH₄", "34 g NH₃"],
+      answer: "34 g NH₃",
+      category: "chemistry"
+    },
+    {
+      question: "Oxidation number of Mn in KMnO₄:",
+      options: ["+7", "+6", "+5", "+4"],
+      answer: "+7",
+      category: "chemistry"
+    },
+    {
+      question: "Which has sp³ hybridization:",
+      options: ["C₂H₄", "C₂H₂", "CH₄", "CO₂"],
+      answer: "CH₄",
+      category: "chemistry"
+    },
+    {
+      question: "Strong electrolyte:",
+      options: ["Acetic acid", "Sodium chloride", "Ammonia", "Water"],
+      answer: "Sodium chloride",
+      category: "chemistry"
+    },
+    {
+      question: "Activation energy if rate doubles for 10°C rise:",
+      options: ["69 kJ/mol", "34.5 kJ/mol", "138 kJ/mol", "10 kJ/mol"],
+      answer: "69 kJ/mol",
+      category: "chemistry"
+    },
+    {
+      question: "Which is nucleophile:",
+      options: ["NO₂⁺", "NH₃", "H⁺", "SO₃"],
+      answer: "NH₃",
+      category: "chemistry"
+    },
+
+    {
+      question: "Law relating pressure and volume:",
+      options: ["Charles’ Law", "Boyle’s Law", "Avogadro’s Law", "Graham’s Law"],
+      answer: "Boyle’s Law",
+      category: "chemistry"
+    },
+    {
+      question: "pH of 0.01 M HCl solution:",
+      options: ["2", "1", "3", "4"],
+      answer: "2",
+      category: "chemistry"
+    },
+    {
+      question: "Product of NaOH and HCl reaction:",
+      options: ["NaCl + H₂O", "NaCl", "NaOH", "HCl"],
+      answer: "NaCl + H₂O",
+      category: "chemistry"
+    },
+    {
+      question: "Number of sigma bonds in ethane:",
+      options: ["7", "6", "5", "8"],
+      answer: "7",
+      category: "chemistry"
+    },
+    {
+      question: "Name of CH₃COOH:",
+      options: ["Acetic acid", "Formic acid", "Propanoic acid", "Butanoic acid"],
+      answer: "Acetic acid",
+      category: "chemistry"
+    },*/
+    {
+      question: "Which is aromatic:",
+      options: ["Cyclohexane", "Benzene", "Hexane", "Butane"],
+      answer: "Benzene",
+      category: "chemistry"
+    },
+    {
+      question: "Which compound is saturated:",
+      options: ["Alkane", "Alkene", "Alkyne", "Arene"],
+      answer: "Alkane",
+      category: "chemistry"
+    },
+    {
+      question: "Functional group in alcohol:",
+      options: ["–OH", "–COOH", "–CHO", "–NH₂"],
+      answer: "–OH",
+      category: "chemistry"
+    },
+    {
+      question: "Atomic number of oxygen:",
+      options: ["6", "7", "8", "9"],
+      answer: "8",
+      category: "chemistry"
+    },
+    {
+      question: "Valency of carbon:",
+      options: ["2", "3", "4", "5"],
+      answer: "4",
+      category: "chemistry"
+    },
+   /* {
+      question: "Powerhouse of the cell:",
+      options: ["Nucleus", "Mitochondria", "Chloroplast", "Ribosome"],
+      answer: "Mitochondria",
+      category: "biology"
+    },
+    {
+      question: "Basic unit of kidney:",
+      options: ["Neuron", "Nephron", "Axon", "Alveoli"],
+      answer: "Nephron",
+      category: "biology"
+    },
+    {
+      question: "Largest gland in human body:",
+      options: ["Liver", "Pancreas", "Thyroid", "Adrenal"],
+      answer: "Liver",
+      category: "biology"
+    },
+    {
+      question: "Which part of brain controls heartbeat:",
+      options: ["Cerebrum", "Medulla", "Cerebellum", "Pons"],
+      answer: "Medulla",
+      category: "biology"
+    },
+    {
+      question: "Which hormone regulates blood sugar:",
+      options: ["Insulin", "Adrenaline", "Thyroxine", "Estrogen"],
+      answer: "Insulin",
+      category: "biology"
+    },
+    {
+      question: "Chromosomes made up of:",
+      options: ["DNA + Protein", "RNA + Protein", "Lipid", "Starch"],
+      answer: "DNA + Protein",
+      category: "biology"
+    },
+    {
+      question: "Plants breathe through:",
+      options: ["Stomata", "Leaves", "Roots", "Flowers"],
+      answer: "Stomata",
+      category: "biology"
+    },
+    {
+      question: "Blood cells responsible for clotting:",
+      options: ["RBC", "WBC", "Platelets", "Plasma"],
+      answer: "Platelets",
+      category: "biology"
+    },
+    {
+      question: "Largest bone in human body:",
+      options: ["Femur", "Tibia", "Humerus", "Ulna"],
+      answer: "Femur",
+      category: "biology"
+    },
+    {
+      question: "Organ that filters blood in body:",
+      options: ["Liver", "Kidney", "Heart", "Lungs"],
+      answer: "Kidney",
+      category: "biology"
+    },
+    {
+      question: "Which is not a part of digestive system:",
+      options: ["Liver", "Stomach", "Lung", "Intestine"],
+      answer: "Lung",
+      category: "biology"
+    },*/
+    {
+      question: "Blood cells carrying oxygen:",
+      options: ["WBC", "RBC", "Platelets", "Plasma"],
+      answer: "RBC",
+      category: "biology"
+    },
+    {
+      question: "Which vitamin for blood clotting:",
+      options: ["A", "B", "C", "K"],
+      answer: "K",
+      category: "biology"
+    },
+    {
+      question: "Pollination by wind is called:",
+      options: ["Anemophily", "Entomophily", "Hydrophily", "Zoophily"],
+      answer: "Anemophily",
+      category: "biology"
+    },
+    {
+      question: "Site of photosynthesis:",
+      options: ["Chloroplast", "Mitochondria", "Nucleus", "Cytoplasm"],
+      answer: "Chloroplast",
+      category: "biology"
+    },
+    // LAW CATEGORY QUESTIONS
+
+ /* {
+    question: "Which article of the Indian Constitution guarantees the Right to Equality?",
+    options: ["Article 14", "Article 19", "Article 21", "Article 32"],
+    answer: "Article 14",
+    category: "law"
+  },
+  {
+    question: "What is the minimum age to become a judge in a District Court in India?",
+    options: ["21", "25", "35", "45"],
+    answer: "35",
+    category: "law"
+  },
+  {
+    question: "In legal terms, 'mens rea' refers to:",
+    options: ["A guilty mind", "An arrest warrant", "Civil dispute", "None of these"],
+    answer: "A guilty mind",
+    category: "law"
+  },
+  {
+    question: "Which of the following is a civil wrong?",
+    options: ["Theft", "Murder", "Tort", "Robbery"],
+    answer: "Tort",
+    category: "law"
+  },
+  {
+    question: "Who appoints the Chief Justice of India?",
+    options: ["Prime Minister", "President", "Lok Sabha", "Supreme Court"],
+    answer: "President",
+    category: "law"
+  },
+  {
+    question: "What does IPC stand for?",
+    options: ["Indian Parliamentary Code", "Indian Police Code", "Indian Penal Code", "Internal Public Code"],
+    answer: "Indian Penal Code",
+    category: "law"
+  },
+  {
+    question: "Which fundamental right cannot be suspended even during Emergency?",
+    options: ["Right to Freedom", "Right to Equality", "Right to Education", "Right to Life"],
+    answer: "Right to Life",
+    category: "law"
+  },
+  {
+    question: "Which body recommends judicial appointments in India?",
+    options: ["President", "Union Cabinet", "Supreme Court", "Collegium"],
+    answer: "Collegium",
+    category: "law"
+  },
+  {
+    question: "The Constitution of India came into effect on:",
+    options: ["15 August 1947", "26 January 1950", "26 November 1949", "1 January 1950"],
+    answer: "26 January 1950",
+    category: "law"
+  },
+  {
+    question: "In court, 'perjury' refers to:",
+    options: ["Refusing to testify", "Lying under oath", "Disrespect to judge", "Delaying hearing"],
+    answer: "Lying under oath",
+    category: "law"
+  },*/
+  {
+    question: "A PIL stands for:",
+    options: ["Public Independent Law", "Personal Interest Litigation", "Public Interest Litigation", "Private Individual Lawsuit"],
+    answer: "Public Interest Litigation",
+    category: "law"
+  },
+  {
+    question: "Which part of the Constitution deals with the judiciary?",
+    options: ["Part IV", "Part V", "Part VI", "Part XI"],
+    answer: "Part V",
+    category: "law"
+  },
+  {
+    question: "What is the highest court in India?",
+    options: ["High Court", "District Court", "Supreme Court", "Magistrate Court"],
+    answer: "Supreme Court",
+    category: "law"
+  },
+  {
+    question: "What does 'ultra vires' mean in legal terms?",
+    options: ["Beyond one’s authority", "Legal mistake", "Contract breach", "Under scrutiny"],
+    answer: "Beyond one’s authority",
+    category: "law"
+  },
+  {
+    question: "Which famous case introduced 'basic structure doctrine'?",
+    options: ["Golaknath v. State", "Kesavananda Bharati v. State of Kerala", "Maneka Gandhi v. Union of India", "Indira Gandhi v. Raj Narain"],
+    answer: "Kesavananda Bharati v. State of Kerala",
+    category: "law"
+  },
+
+  // MANAGEMENT CATEGORY QUESTIONS
+
+  /*{
+    question: "What does 'SWOT' stand for?",
+    options: ["Structure, Weakness, Options, Tactics", "Strengths, Weaknesses, Opportunities, Threats", "System, Work, Output, Time", "Strategy, Work, Operations, Time"],
+    answer: "Strengths, Weaknesses, Opportunities, Threats",
+    category: "management"
+  },
+  {
+    question: "The primary goal of marketing is to:",
+    options: ["Increase profits", "Satisfy customer needs", "Reduce staff", "Decrease production"],
+    answer: "Satisfy customer needs",
+    category: "management"
+  },
+  {
+    question: "Which is NOT a principle of management by Henry Fayol?",
+    options: ["Unity of command", "Division of work", "Scalar chain", "Right to strike"],
+    answer: "Right to strike",
+    category: "management"
+  },
+  {
+    question: "ROI stands for:",
+    options: ["Rate of Investment", "Revenue on Input", "Return on Investment", "Record of Income"],
+    answer: "Return on Investment",
+    category: "management"
+  },
+  {
+    question: "The term 'entrepreneur' refers to:",
+    options: ["A manager", "A business owner who takes risks", "A government employee", "A customer"],
+    answer: "A business owner who takes risks",
+    category: "management"
+  },
+  {
+    question: "Which of the following is a leadership style?",
+    options: ["Aggressive", "Autocratic", "Passive", "Idealistic"],
+    answer: "Autocratic",
+    category: "management"
+  },
+  {
+    question: "Peter Drucker is known for contributions in:",
+    options: ["Physics", "Finance", "Modern Management", "Psychology"],
+    answer: "Modern Management",
+    category: "management"
+  },
+  {
+    question: "Which function is not part of management?",
+    options: ["Planning", "Organizing", "Auditing", "Controlling"],
+    answer: "Auditing",
+    category: "management"
+  },
+  {
+    question: "The process of comparing actual performance with standards is called:",
+    options: ["Staffing", "Planning", "Controlling", "Organizing"],
+    answer: "Controlling",
+    category: "management"
+  },
+  {
+    question: "Maslow's theory is related to:",
+    options: ["Marketing", "Employee Motivation", "Accounting", "Product Development"],
+    answer: "Employee Motivation",
+    category: "management"
+  },*/
+  {
+    question: "A 'balance sheet' shows:",
+    options: ["Employees hired", "Financial position", "Sales only", "Marketing plan"],
+    answer: "Financial position",
+    category: "management"
+  },
+  {
+    question: "Which of the following is a financial ratio?",
+    options: ["Liquidity ratio", "Profit consistency", "Process cycle", "Employee output"],
+    answer: "Liquidity ratio",
+    category: "management"
+  },
+  {
+    question: "What is the purpose of a business plan?",
+    options: ["Hiring staff", "Legal protection", "Funding and strategy", "Increasing salary"],
+    answer: "Funding and strategy",
+    category: "management"
+  },
+  {
+    question: "Six Sigma is used for:",
+    options: ["Data storage", "Performance review", "Quality control", "Sales planning"],
+    answer: "Quality control",
+    category: "management"
+  },
+  {
+    question: "Who formulates monetary policy in India?",
+    options: ["SEBI", "Finance Ministry", "RBI", "NITI Aayog"],
+    answer: "RBI",
+    category: "management"
+  },
+
+  // AGRICULTURE CATEGORY QUESTIONS
+
+  /*{
+    question: "Which of these is a kharif crop?",
+    options: ["Wheat", "Barley", "Maize", "Gram"],
+    answer: "Maize",
+    category: "agriculture"
+  },
+  {
+    question: "The Green Revolution in India was led by:",
+    options: ["M.S. Swaminathan", "Norman Borlaug", "Verghese Kurien", "C. Subramaniam"],
+    answer: "M.S. Swaminathan",
+    category: "agriculture"
+  },
+  {
+    question: "Which soil is best suited for cotton cultivation?",
+    options: ["Alluvial", "Red", "Black", "Laterite"],
+    answer: "Black",
+    category: "agriculture"
+  },
+  {
+    question: "Which vitamin is present in carrots?",
+    options: ["Vitamin A", "Vitamin C", "Vitamin B12", "Vitamin D"],
+    answer: "Vitamin A",
+    category: "agriculture"
+  },
+  {
+    question: "Agriculture contributes to about what % of India’s GDP (as of recent data)?",
+    options: ["10%", "15%", "25%", "40%"],
+    answer: "15%",
+    category: "agriculture"
+  },
+  {
+    question: "Which state is known as the 'Rice Bowl of India'?",
+    options: ["Punjab", "Karnataka", "Andhra Pradesh", "Bihar"],
+    answer: "Andhra Pradesh",
+    category: "agriculture"
+  },
+  {
+    question: "ICAR stands for:",
+    options: ["Indian Council of Agricultural Research", "Indian Crop Area Record", "International Crop Assessment Report", "Indian Committee of Agriculture & Resources"],
+    answer: "Indian Council of Agricultural Research",
+    category: "agriculture"
+  },
+  {
+    question: "Which irrigation method is most water-efficient?",
+    options: ["Canal", "Drip", "Sprinkler", "Tank"],
+    answer: "Drip",
+    category: "agriculture"
+  },
+  {
+    question: "Terrace farming helps in:",
+    options: ["Soil erosion", "Water pollution", "Soil conservation", "Excess irrigation"],
+    answer: "Soil conservation",
+    category: "agriculture"
+  },
+  {
+    question: "Vermicomposting uses:",
+    options: ["Chemical fertilizers", "Earthworms", "Bird waste", "Manure"],
+    answer: "Earthworms",
+    category: "agriculture"
+  },*/
+  {
+    question: "Which crop requires the most water?",
+    options: ["Wheat", "Rice", "Maize", "Millets"],
+    answer: "Rice",
+    category: "agriculture"
+  },
+  {
+    question: "Organic farming avoids the use of:",
+    options: ["Water", "Sunlight", "Chemical fertilizers", "Seeds"],
+    answer: "Chemical fertilizers",
+    category: "agriculture"
+  },
+  {
+    question: "Which of the following is a leguminous crop?",
+    options: ["Rice", "Wheat", "Pea", "Barley"],
+    answer: "Pea",
+    category: "agriculture"
+  },
+  {
+    question: "Crop rotation is practiced to:",
+    options: ["Increase profits", "Avoid pests", "Improve soil fertility", "All of these"],
+    answer: "All of these",
+    category: "agriculture"
+  },
+  {
+    question: "NPK fertilizers contain:",
+    options: ["Nitrogen, Phosphorus, Potassium", "Nickel, Potash, Krypton", "Nitrate, Phosphate, Kerosene", "None of the above"],
+    answer: "Nitrogen, Phosphorus, Potassium",
+    category: "agriculture"
+  }
+
+
+  ];
+
+
+let currentQuestion = 0;
+  let answers = {};
+
+  const questionText = document.getElementById("questionText");
+  const categoryText = document.getElementById("categoryText");
+  const optionsContainer = document.getElementById("optionsContainer");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const submitBtn = document.getElementById("submitBtn");
+
+  function loadQuestion(index) {
+    const q = questions[index];
+    questionText.innerText = `Q${index + 1}: ${q.question}`;
+    categoryText.innerText = `Category: ${q.category.toUpperCase()}`;
+    optionsContainer.innerHTML = "";
+
+    q.options.forEach(option => {
+  const label = document.createElement("label");
+  const input = document.createElement("input");
+  input.type = "radio";
+  input.name = "answer";
+  input.value = option;
+
+  if (answers[index] === option) {
+    input.checked = true;
+    label.classList.add("selected");
+  }
+
+  input.addEventListener("change", () => {
+    // Remove 'selected' class from all labels
+    document.querySelectorAll(".options label").forEach(l => l.classList.remove("selected"));
+    label.classList.add("selected");
+  });
+
+  label.appendChild(input);
+  label.append(` ${option}`);
+  optionsContainer.appendChild(label);
+});
+
+
+    prevBtn.style.display = index === 0 ? "none" : "inline-block";
+    nextBtn.style.display = index === questions.length - 1 ? "none" : "inline-block";
+    submitBtn.style.display = index === questions.length - 1 ? "inline-block" : "none";
+  }
+
+  function saveAnswer() {
+    const selected = document.querySelector('input[name="answer"]:checked');
+    if (selected) {
+      answers[currentQuestion] = selected.value;
+    }
+  }
+
+  nextBtn.addEventListener("click", () => {
+    saveAnswer();
+    if (currentQuestion < questions.length - 1) {
+      currentQuestion++;
+      loadQuestion(currentQuestion);
+    }
+  });
+
+  prevBtn.addEventListener("click", () => {
+    saveAnswer();
+    if (currentQuestion > 0) {
+      currentQuestion--;
+      loadQuestion(currentQuestion);
+    }
+  });
+
+  document.getElementById("testForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    saveAnswer();
+    document.getElementById("loadingSpinner").style.display = "block";
+    document.getElementById("submitBtn").disabled = true;
+
+    let streamScores = {
+      math: 0,
+      physics: 0,
+      chemistry: 0,
+      biology: 0,
+      law: 0,
+      management: 0,
+      agriculture: 0
+    };
+
+    questions.forEach((q, index) => {
+      if (answers[index] === q.answer && q.category && streamScores[q.category] !== undefined) {
+        streamScores[q.category]++;
+      }
+    });
+
+    try {
+      const response = await fetch('/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ streamScores })
+      });
+
+      const result = await response.json();
+      localStorage.setItem("evaluationResult", JSON.stringify(result));
+      localStorage.setItem("submissions", JSON.stringify(answers));
+      localStorage.setItem("questions", JSON.stringify(questions));
+
+      window.location.href = "result.html";
+    } catch (error) {
+      console.error("Error evaluating result:", error);
+      alert("Something went wrong while evaluating your stream.");
+    } finally {
+      document.getElementById("loadingSpinner").style.display = "none";
+      document.getElementById("submitBtn").disabled = false;
+    }
+  });
+
+  // Timer logic with 5-minute warning
+  let totalTime = 7200;
+  const timerElement = document.getElementById("timer");
+  let warningGiven = false;
+
+  function startTimer() {
+    const interval = setInterval(() => {
+      const minutes = Math.floor(totalTime / 60);
+      const seconds = totalTime % 60;
+      timerElement.innerText = `⏱️ ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+      if (totalTime === 300 && !warningGiven) {
+        showModal();
+        warningGiven = true;
+      }
+
+      if (totalTime <= 0) {
+        clearInterval(interval);
+        alert("⏰ Time is up! Submitting your test.");
+        saveAnswer();
+        document.getElementById("testForm").dispatchEvent(new Event("submit"));
+      }
+
+      totalTime--;
+    }, 1000);
+  }
+
+  function showModal() {
+    document.getElementById("popupModal").style.display = "flex";
+  }
+
+  function closeModal() {
+    document.getElementById("popupModal").style.display = "none";
+  }
+
+  loadQuestion(currentQuestion);
+  startTimer();
+</script>
+
+</body>
+</html>
