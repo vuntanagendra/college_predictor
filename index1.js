@@ -89,7 +89,7 @@ app.get('/homepage.html', (req, res) => {
 });
 
 
-const genAI = new GoogleGenerativeAI("AIzaSyDohbqd22y_mNFaAEHQ0gnKkn8NJUuNi2g"); // Replace with actual API key
+const genAI = new GoogleGenerativeAI("_mNFaAEHQ0gnKkn8NJUuNi2g"); // Replace with actual API key
 
 
 app.post('/evaluate', async (req, res) => {
