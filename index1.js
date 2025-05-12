@@ -1,38 +1,45 @@
 const express = require('express');
-const mysql = require('mysql');
+const { Pool } = require('pg');
 const bodyParser = require('body-parser');
 const path = require('path');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const app = express();
 const session = require('express-session');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+require('dotenv').config();
+
+const app = express();
 
 // Middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static('templates')); // Serve static files from "templates" folder
+app.use(express.static('templates'));
 
 app.use(session({
-  secret: '@Giri', // use a strong secret in production
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true
 }));
 
-// MySQL Connection (connect once)
-const con = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "user"
+// PostgreSQL Connection Pool
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT || 5432,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-con.connect(function (err) {
-  if (err) throw err;
-  console.log("Connected to MySQL database!");
-});
+pool.connect()
+  .then(() => console.log("Connected to PostgreSQL database!"))
+  .catch(err => console.error("Connection error", err.stack));
+
+// Google Generative AI
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 // Routes
 
-// Serve login page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'login.html'));
 });
@@ -41,17 +48,15 @@ app.get('/login.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'login.html'));
 });
 
-// Handle login
 app.post('/login', (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
+  const { email, password } = req.body;
+  const sql = "SELECT * FROM std_login WHERE email = $1 AND password = $2";
 
-  const sql = "SELECT * FROM std_login WHERE email = ? AND password = ?";
-  con.query(sql, [email, password], (err, results) => {
+  pool.query(sql, [email, password], (err, results) => {
     if (err) throw err;
 
-    if (results.length > 0) {
-      req.session.user = { email }; // Store email in session
+    if (results.rows.length > 0) {
+      req.session.user = { email };
       res.redirect('/homepage.html');
     } else {
       res.send('Incorrect Email and/or Password!');
@@ -59,48 +64,36 @@ app.post('/login', (req, res) => {
   });
 });
 
-
-// Serve signup page
 app.get('/signup.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'signup.html'));
 });
 
-// Handle signup
 app.post('/signup', (req, res) => {
-  const username = req.body.username;
-  const email = req.body.email;
-  const password = req.body.password;
+  const { username, email, password } = req.body;
   const confirmPassword = req.body['confirm-password'];
 
   if (password !== confirmPassword) {
     return res.send('Passwords do not match!');
   }
 
-  const sql = "INSERT INTO std_login (username, email, password) VALUES (?, ?, ?)";
-  con.query(sql, [username, email, password], (err, result) => {
+  const sql = "INSERT INTO std_login (username, email, password) VALUES ($1, $2, $3)";
+  pool.query(sql, [username, email, password], (err, result) => {
     if (err) throw err;
-    res.send("User registered successfully with ID: " + result.insertId);
+    res.send("User registered successfully.");
   });
 });
 
-// Serve dashboard
 app.get('/homepage.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'templates', 'homepage.html'));
 });
 
-
-const genAI = new GoogleGenerativeAI("_mNFaAEHQ0gnKkn8NJUuNi2g"); // Replace with actual API key
-
-
 app.post('/evaluate', async (req, res) => {
   const streamScores = req.body.streamScores;
-  console.log('streamScores :' ,streamScores);
   if (!streamScores) {
     return res.status(400).json({ error: "streamScores required" });
   }
 
   const streams = ["Engineering", "Medical", "Law", "Management", "Agriculture"];
-
   const prompt = `A student has the following scores: ${JSON.stringify(streamScores)}.
 Based on these, suggest the best suited stream from: ${streams.join(", ")}. Provide only one stream name and a short reason.`;
 
@@ -117,8 +110,8 @@ Based on these, suggest the best suited stream from: ${streams.join(", ")}. Prov
       return res.status(500).json({ error: "Could not extract stream from Gemini output" });
     }
 
-    const sql = "SELECT name, location, category, logo_url FROM colleges WHERE category = ?";
-    con.query(sql, [selectedStream], (err, results) => {
+    const sql = "SELECT name, location, category, logo_url FROM colleges WHERE category = $1";
+    pool.query(sql, [selectedStream], (err, results) => {
       if (err) {
         console.error("Database error:", err);
         return res.status(500).json({ error: "Database query failed" });
@@ -127,8 +120,7 @@ Based on these, suggest the best suited stream from: ${streams.join(", ")}. Prov
       res.json({
         bestStream: selectedStream,
         explanation: text,
-        colleges: results // Includes name, location, logo_url
- 
+        colleges: results.rows
       });
     });
 
@@ -145,12 +137,12 @@ app.get('/profile', (req, res) => {
     return res.status(401).send("Not logged in.");
   }
 
-  const sql = "SELECT username, email FROM std_login WHERE email = ?";
-  con.query(sql, [userEmail], (err, results) => {
+  const sql = "SELECT username, email FROM std_login WHERE email = $1";
+  pool.query(sql, [userEmail], (err, results) => {
     if (err) return res.status(500).send("Server error.");
-    if (results.length === 0) return res.status(404).send("User not found.");
+    if (results.rows.length === 0) return res.status(404).send("User not found.");
 
-    const user = results[0];
+    const user = results.rows[0];
     res.json({
       name: user.username,
       email: user.email
@@ -158,7 +150,6 @@ app.get('/profile', (req, res) => {
   });
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
