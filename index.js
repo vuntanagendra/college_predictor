@@ -5,6 +5,8 @@ const path = require('path');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 const session = require('express-session');
+require('dotenv').config();
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 // Middleware
 app.use(bodyParser.json());
@@ -12,17 +14,17 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('templates')); // Serve static files from "templates" folder
 
 app.use(session({
-  secret: '@Giri', // use a strong secret in production
+  secret: process.env.SESSION_SECRET, // use a strong secret in production
   resave: false,
   saveUninitialized: true
 }));
 
 // MySQL Connection (connect once)
 const con = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "user"
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME
 });
 
 con.connect(function (err) {
@@ -89,7 +91,6 @@ app.get('/homepage.html', (req, res) => {
 });
 
 
-const genAI = new GoogleGenerativeAI("AIzaSyDohbqd22y_mNFaAEHQ0gnKkn8NJUuNi2g"); // Replace with actual API key
 
 
 app.post('/evaluate', async (req, res) => {
