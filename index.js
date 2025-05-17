@@ -79,7 +79,6 @@ app.post('/signup', (req, res) => {
   const password = req.body.password;
   const confirmPassword = req.body['confirm-password'];
 
-  // Check if passwords match
   if (password !== confirmPassword) {
     return res.send(`
       <html>
@@ -94,16 +93,17 @@ app.post('/signup', (req, res) => {
     `);
   }
 
-  // Insert into database
-  const sql = "INSERT INTO std_login (username, email, password) VALUES (?, ?, ?)";
-  con.query(sql, [username, email, password], (err, result) => {
+  const sql = 'INSERT INTO std_login (username, email, password) VALUES ($1, $2, $3)';
+  const values = [username, email, password];
+
+  pool.query(sql, values, (err, result) => {
     if (err) {
       console.error(err);
       return res.send(`
         <html>
           <head>
             <script>
-              alert("❌ Error occurred while registering. Please try again.");
+              alert("❌ Error during registration. Try again.");
               window.history.back();
             </script>
           </head>
@@ -112,7 +112,6 @@ app.post('/signup', (req, res) => {
       `);
     }
 
-    // Success: show popup and redirect to login
     res.send(`
       <html>
         <head>
@@ -165,6 +164,7 @@ app.post('/signup', (req, res) => {
     `);
   });
 });
+
 
 
 // Serve dashboard
