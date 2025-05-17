@@ -73,23 +73,99 @@ app.get('/signup.html', (req, res) => {
 });
 
 // Handle signup
-app.post('/signup', async (req, res) => {
-  const { username, email, password } = req.body;
+app.post('/signup', (req, res) => {
+  const username = req.body.username;
+  const email = req.body.email;
+  const password = req.body.password;
   const confirmPassword = req.body['confirm-password'];
 
+  // Check if passwords match
   if (password !== confirmPassword) {
-    return res.send('Passwords do not match!');
+    return res.send(`
+      <html>
+        <head>
+          <script>
+            alert("❌ Passwords do not match!");
+            window.history.back();
+          </script>
+        </head>
+        <body></body>
+      </html>
+    `);
   }
 
-  const sql = "INSERT INTO std_login (username, email, password) VALUES ($1, $2, $3)";
-  try {
-    const result = await pool.query(sql, [username, email, password]);
-    res.send("User registered successfully.");
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Database error");
-  }
+  // Insert into database
+  const sql = "INSERT INTO std_login (username, email, password) VALUES (?, ?, ?)";
+  con.query(sql, [username, email, password], (err, result) => {
+    if (err) {
+      console.error(err);
+      return res.send(`
+        <html>
+          <head>
+            <script>
+              alert("❌ Error occurred while registering. Please try again.");
+              window.history.back();
+            </script>
+          </head>
+          <body></body>
+        </html>
+      `);
+    }
+
+    // Success: show popup and redirect to login
+    res.send(`
+      <html>
+        <head>
+          <style>
+            body {
+              background-color: #f4f4f4;
+              font-family: Arial, sans-serif;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              margin: 0;
+            }
+            .popup {
+              background-color: #fff;
+              border-radius: 12px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+              padding: 30px 40px;
+              text-align: center;
+              max-width: 400px;
+              animation: fadeIn 0.3s ease-in-out;
+            }
+            .popup h2 {
+              color: #28a745;
+              font-size: 1.8em;
+              margin-bottom: 10px;
+            }
+            .popup p {
+              color: #555;
+              font-size: 1em;
+            }
+            @keyframes fadeIn {
+              from { opacity: 0; transform: translateY(-10px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="popup">
+            <h2>🎉 Registration Successful!</h2>
+            <p>You will be redirected to the login page shortly...</p>
+          </div>
+          <script>
+            setTimeout(() => {
+              window.location.href = "/login.html";
+            }, 3000);
+          </script>
+        </body>
+      </html>
+    `);
+  });
 });
+
 
 // Serve dashboard
 app.get('/homepage.html', (req, res) => {
