@@ -186,7 +186,7 @@ app.post('/evaluate', async (req, res) => {
 Based on these, suggest the best suited stream from: ${streams.join(", ")}. Provide only one stream name and a short reason.`;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "models/gemini-2.5-pro-exp-03-25" });
+    const model = genAI.getGenerativeModel({ model: "models/learnlm-2.0-flash-experimental" });
     const result = await model.generateContent(prompt);
     const text = result.response.text();
 
