@@ -201,6 +201,11 @@ Based on these, suggest the best suited stream from: ${streams.join(", ")}. Prov
     const sql = "SELECT name, location, category, logo_url FROM colleges WHERE category = $1";
     const queryResult = await pool.query(sql, [selectedStream]);
 
+    if (!queryResult.rows.length) {
+  return res.status(404).json({ error: "No colleges found for the suggested stream", bestStream: selectedStream, explanation: text, colleges: [] });
+}
+
+
     res.json({
       bestStream: selectedStream,
       explanation: text,
