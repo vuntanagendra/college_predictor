@@ -928,6 +928,7 @@ let currentQuestion = 0;
       });
 
       const result = await response.json();
+      localStorage.setItem("streamScores", JSON.stringify(streamScores));
       localStorage.setItem("evaluationResult", JSON.stringify(result));
       localStorage.setItem("submissions", JSON.stringify(answers));
       localStorage.setItem("questions", JSON.stringify(questions));
